@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<footer>
+  <company>MovieBooking Systems</company>
+  <copyright>2026 All Rights Reserved</copyright>
+  <links>
+    <link>
+      <label>Privacy Policy</label>
+      <url>/privacy</url>
+    </link>
+    <link>
+      <label>Terms of Service</label>
+      <url>/terms</url>
+    </link>
+    <link>
+      <label>Contact Support</label>
+      <url>/contact</url>
+    </link>
+  </links>
+  <contact>
+    <email>help@moviebooking.com</email>
+    <phone>+1-555-0199</phone>
+  </contact>
+</footer>
