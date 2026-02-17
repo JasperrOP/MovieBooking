@@ -88,7 +88,7 @@ const Booking = () => {
       }, config);
 
       const options = {
-        key: "YOUR_RAZORPAY_TEST_KEY_ID", 
+        key: "rzp_test_S7fwyuDD8ht4sH", 
         amount: order.amount,
         currency: order.currency,
         name: "MovieBooking App",
@@ -187,11 +187,13 @@ const Booking = () => {
                 <h3>Scan to Pay: Rs. {selectedSeats.length * selectedShow.price}</h3>
                 <div style={{border:'1px solid #ddd', padding:'10px', display:'inline-block'}}>
                     <img 
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=yourname@upi&pn=MovieBooking&am=${selectedSeats.length * selectedShow.price}`} 
+                    src={`/image.png`} 
                     alt="Payment QR" 
                     style={{width: '150px', height: '150px'}} 
                     />
                 </div>
+                <p>UPI ID : ayush30904@oksbi</p>
+
                 <button style={{...styles.payBtn, backgroundColor: '#27ae60', marginTop:'20px'}} onClick={confirmQRPayment}>
                   ✅ I Have Paid
                 </button>

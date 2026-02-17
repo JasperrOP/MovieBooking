@@ -1,6 +1,8 @@
 const Movie = require('../models/Movie');
 const Theatre = require('../models/Theatre');
 const Screen = require('../models/Screen');
+const Booking = require('../models/Booking');
+const User = require('../models/User');
 
 // @desc    Add a new movie
 // @route   POST /api/admin/movies
@@ -65,4 +67,44 @@ const addScreen = async (req, res) => {
   res.status(201).json(createdScreen);
 };
 
-module.exports = { addMovie, addTheatre, addScreen };
+// @desc    Get Admin Dashboard Stats
+// @route   GET /api/admin/stats
+// @access  Private/Admin
+const getAdminStats = async (req, res) => {
+  try {
+    // 1. Total Sales (Sum of totalAmount in Bookings)
+    const totalRevenue = await Booking.aggregate([
+      { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+    ]);
+
+    // 2. Total Counts
+    const totalBookings = await Booking.countDocuments();
+    const totalMovies = await Movie.countDocuments();
+    const totalUsers = await User.countDocuments();
+
+    // 3. Recent Bookings (Last 5)
+    const recentBookings = await Booking.find()
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('user', 'name')
+      .populate('showtime'); 
+
+    res.json({
+      revenue: totalRevenue[0]?.total || 0,
+      bookings: totalBookings,
+      movies: totalMovies,
+      users: totalUsers,
+      recentBookings
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { 
+  addMovie, 
+  addTheatre, 
+  addScreen, 
+  getAdminStats 
+};
