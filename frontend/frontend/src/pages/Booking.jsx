@@ -42,6 +42,9 @@ const Booking = () => {
   const processBooking = async (paymentId) => {
      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
      
+     // 1. Calculate Total Amount
+     const totalAmount = selectedSeats.length * selectedShow.price;
+
      try {
       const config = {
         headers: {
@@ -53,13 +56,14 @@ const Booking = () => {
       const bookingPayload = {
         showtimeId: selectedShow._id,
         seats: selectedSeats,
-        paymentId: paymentId 
+        paymentId: paymentId,
+        totalAmount: totalAmount // <--- FIXED: Added this field
       };
 
-      // 1. Send to Backend
+      // 2. Send to Backend
       const { data } = await axios.post('/api/bookings', bookingPayload, config);
       
-      // 2. Redirect to the new Receipt Page
+      // 3. Redirect to the new Receipt Page
       navigate(`/booking/success/${data._id}`); 
 
      } catch (error) {
@@ -88,7 +92,7 @@ const Booking = () => {
       }, config);
 
       const options = {
-        key: "rzp_test_S7fwyuDD8ht4sH", 
+        key: "YOUR_RAZORPAY_KEY_ID_HERE", // Replace with your actual key
         amount: order.amount,
         currency: order.currency,
         name: "MovieBooking App",
@@ -187,7 +191,7 @@ const Booking = () => {
                 <h3>Scan to Pay: Rs. {selectedSeats.length * selectedShow.price}</h3>
                 <div style={{border:'1px solid #ddd', padding:'10px', display:'inline-block'}}>
                     <img 
-                    src={`/image.png`} 
+                    src="/image.png" // Ensure this image exists in public folder
                     alt="Payment QR" 
                     style={{width: '150px', height: '150px'}} 
                     />

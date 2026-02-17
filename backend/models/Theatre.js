@@ -21,7 +21,8 @@ const theatreSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true, // Admin can temporarily close a theatre
-  }
+  },
+  hasFoodService: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Theatre', theatreSchema);

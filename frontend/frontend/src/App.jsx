@@ -14,6 +14,9 @@ import ScheduleShow from './pages/admin/ScheduleShow';
 import BookingHistory from './pages/admin/BookingHistory'; // <--- Import
 import StaffDashboard from './pages/staff/StaffDashboard';
 import Scanner from './pages/staff/Scanner';
+import AddFood from './pages/admin/AddFood';
+import MyBookings from './pages/user/MyBookings';
+import OrderFood from './pages/user/OrderFood';
 
 
 import Footer from './Footer'; 
@@ -40,6 +43,7 @@ function App() {
             <Route path="/admin/add-theatre" element={<AddTheatre />} />
             <Route path="/admin/add-screen" element={<AddScreen />} />
             <Route path="/admin/schedule-show" element={<ScheduleShow />} />
+            <Route path="/admin/add-food" element={<AddFood />} />
             
             {/* Admin History Route */}
             <Route path="/admin/bookings" element={<BookingHistory />} />
@@ -48,6 +52,9 @@ function App() {
 
 
             <Route path="/staff/scanner" element={<Scanner />} />
+
+            <Route path="/my-bookings" element={<MyBookings />} />
+            <Route path="/order-food/:id" element={<OrderFood />} />  
           </Routes>
         </div>
 

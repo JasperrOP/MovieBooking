@@ -25,7 +25,7 @@ const BookingSuccess = () => {
   }, [id]);
 
   const handlePrint = () => {
-    window.print(); // Triggers browser's native print/save-as-pdf dialog
+    window.print(); 
   };
 
   if (loading) return <div style={{color:'white', padding:'50px', textAlign:'center'}}>Generating Receipt...</div>;
@@ -43,13 +43,14 @@ const BookingSuccess = () => {
         
         <div style={styles.content}>
             <div style={styles.row}>
+                {/* Fallback image if poster is missing */}
                 <img 
-                    src={booking.showtime.movie.poster || 'https://via.placeholder.com/100x150'} 
+                    src={booking.showtime.movie.posterUrl || '/vite.svg'} 
                     alt="poster" 
-                    style={{width:'80px', borderRadius:'5px'}} 
+                    style={{width:'80px', borderRadius:'5px', backgroundColor:'#ccc'}} 
                 />
                 <div style={{marginLeft:'20px'}}>
-                    <h2 style={{margin: '0 0 5px 0'}}>{booking.showtime.movie.title}</h2>
+                    <h2 style={{margin: '0 0 5px 0', fontSize:'18px'}}>{booking.showtime.movie.title}</h2>
                     <p style={{color:'#555', margin:0, fontWeight:'bold'}}>{booking.showtime.theatre.name}</p>
                     <p style={{color:'#777', fontSize:'14px', margin:0}}>{booking.showtime.screen.name}</p>
                 </div>
@@ -66,22 +67,27 @@ const BookingSuccess = () => {
                     <span style={styles.label}>Seats</span>
                     <p style={styles.value}>{booking.seats.join(', ')}</p>
                 </div>
-                <div>
-                    <span style={styles.label}>Total Amount</span>
-                    <p style={styles.value}>Rs. {booking.totalAmount}</p>
-                </div>
-                <div>
-                    <span style={styles.label}>Payment Ref</span>
-<p 
-  style={{ 
-    ...styles.value, 
-    fontSize: '12px', 
-    wordBreak: 'break-all' 
-  }}
->
-  {booking._id}
-</p>
-                </div>
+            </div>
+
+            {/* --- FOOD SECTION (NEW) --- */}
+            {booking.foodItems && booking.foodItems.length > 0 && (
+              <div style={{marginTop: '20px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '5px'}}>
+                 <span style={styles.label}>Snacks & Drinks</span>
+                 <ul style={{margin: '5px 0 0 15px', padding: 0, fontSize: '14px', color: '#333'}}>
+                   {booking.foodItems.map((item, index) => (
+                     <li key={index}>{item.name} x{item.quantity}</li>
+                   ))}
+                 </ul>
+              </div>
+            )}
+
+            <hr style={{border:'1px dashed #ccc', margin:'20px 0'}}/>
+
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+               <span style={styles.label}>TOTAL PAID</span>
+               <p style={{fontSize: '20px', fontWeight: 'bold', margin:0, color:'#e50914'}}>
+                  Rs. {booking.totalAmount}
+               </p>
             </div>
             
             <div style={{textAlign:'center', marginTop:'30px', backgroundColor: '#f5f5f5', padding: '15px', borderRadius: '8px'}}>
@@ -95,38 +101,30 @@ const BookingSuccess = () => {
       </div>
       
       {/* --- ACTION BUTTONS (Hidden during print) --- */}
-      <div className="no-print" style={{marginTop:'30px', display:'flex', gap:'15px'}}>
+      <div className="no-print" style={{marginTop:'30px', display:'flex', gap:'15px', flexWrap:'wrap', justifyContent:'center'}}>
           <button onClick={handlePrint} className="btn" style={{backgroundColor:'#3498db', padding:'12px 20px', fontSize:'16px'}}>
-            🖨️ Download / Print Ticket
+            🖨️ Print Ticket
           </button>
+          
+          {/* Link to order food if allowed */}
+          {booking.showtime.theatre.hasFoodService && (
+             <Link to={`/order-food/${booking._id}`} className="btn" style={{textDecoration:'none', backgroundColor:'#f1c40f', color:'black', fontWeight:'bold', padding:'12px 20px', fontSize:'16px'}}>
+               🍿 Add Snacks
+             </Link>
+          )}
+
           <Link to="/" className="btn" style={{textDecoration:'none', backgroundColor:'#555', padding:'12px 20px', fontSize:'16px'}}>
-            Back to Home
+            Home
           </Link>
       </div>
 
-      {/* --- PRINT CSS --- */}
       <style>
         {`
           @media print {
-            body * {
-              visibility: hidden;
-            }
-            .printable-ticket, .printable-ticket * {
-              visibility: visible;
-            }
-            .printable-ticket {
-              position: absolute;
-              left: 50%;
-              top: 50px;
-              transform: translateX(-50%);
-              width: 100%;
-              max-width: 400px;
-              border: 1px solid #000;
-              box-shadow: none;
-            }
-            .no-print {
-              display: none !important;
-            }
+            body * { visibility: hidden; }
+            .printable-ticket, .printable-ticket * { visibility: visible; }
+            .printable-ticket { position: absolute; left: 50%; top: 50px; transform: translateX(-50%); width: 100%; max-width: 400px; border: 1px solid #000; }
+            .no-print { display: none !important; }
           }
         `}
       </style>

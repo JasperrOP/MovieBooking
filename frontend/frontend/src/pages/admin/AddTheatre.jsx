@@ -3,17 +3,13 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const AddTheatre = () => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: '',
-    location: '',
-    city: '',
-    isActive: true
-  });
+  const [name, setName] = useState('');
+  const [location, setLocation] = useState('');
+  const [city, setCity] = useState('');
+  // --- NEW STATE ---
+  const [hasFoodService, setHasFoodService] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,43 +18,114 @@ const AddTheatre = () => {
     try {
       const config = {
         headers: {
-          Authorization: `Bearer ${userInfo.token}`,
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${userInfo.token}`,
         },
       };
 
-      // 1. Add the Theatre
-      const { data } = await axios.post('/api/admin/theatres', formData, config);
-      
-      alert(`Theatre "${data.name}" Added! Now let's add a Screen.`);
-      
-      // 2. Redirect to a (future) Add Screen page, passing the Theatre ID
-      // We haven't built this yet, so for now, go back to Dashboard
-      navigate('/admin/dashboard'); 
-      
+      // --- UPDATED PAYLOAD ---
+      await axios.post('/api/admin/theatres', { 
+        name, 
+        location, 
+        city, 
+        isActive: true,
+        hasFoodService // Sending the checkbox value
+      }, config);
+
+      alert('Theatre Added Successfully!');
+      navigate('/admin/dashboard');
     } catch (error) {
       console.error(error);
-      alert('Error adding theatre');
+      alert('Failed to add theatre');
     }
   };
 
   return (
     <div style={styles.container}>
-      <h2>Add New Theatre</h2>
       <form onSubmit={handleSubmit} style={styles.form}>
-        <input name="name" placeholder="Theatre Name (e.g. PVR Cinemas)" onChange={handleChange} required />
-        <input name="location" placeholder="Location (e.g. Downtown Mall)" onChange={handleChange} required />
-        <input name="city" placeholder="City" onChange={handleChange} required />
+        <h2 style={{ color: 'white', textAlign: 'center', marginBottom: '20px' }}>Add New Theatre</h2>
         
-        <button type="submit" className="btn">Add Theatre</button>
+        <input 
+          style={styles.input} 
+          placeholder="Theatre Name" 
+          value={name} 
+          onChange={(e) => setName(e.target.value)} 
+          required 
+        />
+        
+        <input 
+          style={styles.input} 
+          placeholder="Location (e.g. VR Mall)" 
+          value={location} 
+          onChange={(e) => setLocation(e.target.value)} 
+          required 
+        />
+        
+        <input 
+          style={styles.input} 
+          placeholder="City" 
+          value={city} 
+          onChange={(e) => setCity(e.target.value)} 
+          required 
+        />
+
+        {/* --- NEW CHECKBOX --- */}
+        <div style={{display:'flex', alignItems:'center', gap:'10px', color:'white', padding: '0 5px'}}>
+           <input 
+             type="checkbox" 
+             id="foodService"
+             checked={hasFoodService} 
+             onChange={(e) => setHasFoodService(e.target.checked)}
+             style={{width:'18px', height:'18px', cursor: 'pointer'}}
+           />
+           <label htmlFor="foodService" style={{cursor: 'pointer', fontSize: '16px'}}>
+             Enable Food Ordering Service?
+           </label>
+        </div>
+
+        <button type="submit" style={styles.button}>Add Theatre</button>
       </form>
     </div>
   );
 };
 
 const styles = {
-  container: { padding: '40px', color: 'white', maxWidth: '600px', margin: '0 auto' },
-  form: { display: 'flex', flexDirection: 'column', gap: '15px' }
+  container: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '80vh',
+  },
+  form: {
+    backgroundColor: '#1e1e1e',
+    padding: '40px',
+    borderRadius: '10px',
+    width: '400px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    boxShadow: '0 4px 10px rgba(0,0,0,0.5)'
+  },
+  input: {
+    padding: '15px',
+    borderRadius: '5px',
+    border: '1px solid #333',
+    backgroundColor: '#2c2c2c',
+    color: 'white',
+    fontSize: '16px',
+    outline: 'none'
+  },
+  button: {
+    padding: '15px',
+    backgroundColor: '#e50914',
+    color: 'white',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontSize: '18px',
+    fontWeight: 'bold',
+    marginTop: '10px'
+  }
 };
 
 export default AddTheatre;

@@ -9,7 +9,7 @@ const showRoutes = require('./routes/showRoutes');
 const movieRoutes = require('./routes/movieRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const staffRoutes = require('./routes/staffRoutes');
-
+const foodRoutes = require('./routes/foodRoutes');
 // 1. Load Config
 dotenv.config({ path: path.join(__dirname, '.env') });
 
@@ -31,7 +31,7 @@ app.use('/api/movies', movieRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/payment', require('./routes/paymentRoutes'));
 app.use('/api/staff', staffRoutes);
-// 5. Test Route
+app.use('/api/food', require('./routes/foodRoutes'));// 5. Test Route
 app.get('/', (req, res) => {
   res.send('API is running...');
 });

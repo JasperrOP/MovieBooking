@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { createBooking, getBookingById, getAllBookings } = require('../controllers/bookingController');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { createBooking, getMyBookings, addFoodToBooking, getBookingById } = require('../controllers/bookingController');
+const { protect } = require('../middleware/authMiddleware');
 
 router.post('/', protect, createBooking);
-router.get('/all', protect, admin, getAllBookings); // <--- Admin Route
-router.get('/:id', protect, getBookingById);
+router.get('/mybookings', protect, getMyBookings);
+router.put('/:id/food', protect, addFoodToBooking);
+router.get('/:id', protect, getBookingById); // <--- This was missing!
 
 module.exports = router;

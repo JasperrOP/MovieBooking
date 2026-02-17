@@ -28,14 +28,16 @@ const addMovie = async (req, res) => {
 // @route   POST /api/admin/theatres
 // @access  Private/Admin
 const addTheatre = async (req, res) => {
-  const { name, location, city, isActive } = req.body;
+  // Add hasFoodService to the destructured body
+  const { name, location, city, isActive, hasFoodService } = req.body;
 
   const theatre = new Theatre({
     name,
     location,
     city,
-    owner: req.user._id, // The admin creating it becomes the owner
+    owner: req.user._id,
     isActive,
+    hasFoodService: hasFoodService || false // Default to false if not sent
   });
 
   const createdTheatre = await theatre.save();
@@ -72,7 +74,7 @@ const addScreen = async (req, res) => {
 // @access  Private/Admin
 const getAdminStats = async (req, res) => {
   try {
-    // 1. Total Sales (Sum of totalAmount in Bookings)
+    // 1. Total Sales
     const totalRevenue = await Booking.aggregate([
       { $group: { _id: null, total: { $sum: '$totalAmount' } } }
     ]);
@@ -82,12 +84,18 @@ const getAdminStats = async (req, res) => {
     const totalMovies = await Movie.countDocuments();
     const totalUsers = await User.countDocuments();
 
-    // 3. Recent Bookings (Last 5)
+    // 3. Recent Bookings (Deep Populate to get Movie Title)
     const recentBookings = await Booking.find()
       .sort({ createdAt: -1 })
       .limit(5)
       .populate('user', 'name')
-      .populate('showtime'); 
+      .populate({
+        path: 'showtime',
+        populate: {
+          path: 'movie', // This assumes Showtime model has 'movie' field
+          select: 'title'
+        }
+      });
 
     res.json({
       revenue: totalRevenue[0]?.total || 0,

@@ -7,20 +7,37 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('movies');
   const [movies, setMovies] = useState([]);
   const [shows, setShows] = useState([]);
+  
+  // --- NEW: State for Stats ---
+  const [stats, setStats] = useState({
+    revenue: 0,
+    bookings: 0,
+    movies: 0,
+    users: 0,
+    recentBookings: []
+  });
+
   const userInfo = JSON.parse(localStorage.getItem('userInfo'));
 
   useEffect(() => {
-    // Ensure user is admin
     if (!userInfo || userInfo?.role !== 'admin') { 
-      // Note: Adjust the check (userInfo.isAdmin or userInfo.role === 'admin') 
-      // based on your User model.
+      // Fallback check if your user object uses isAdmin instead of role
       if (!userInfo?.isAdmin && userInfo?.role !== 'admin') {
           navigate('/login');
       }
     }
     fetchMovies();
     fetchShows();
+    fetchStats(); // <--- Fetch the stats!
   }, [navigate]);
+
+  const fetchStats = async () => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      const { data } = await axios.get('/api/admin/stats', config);
+      setStats(data);
+    } catch (error) { console.error("Error fetching stats:", error); }
+  };
 
   const fetchMovies = async () => {
     try {
@@ -59,6 +76,26 @@ const AdminDashboard = () => {
   return (
     <div style={{ padding: '40px', color: 'white', maxWidth: '1200px', margin: '0 auto' }}>
       <h1>Admin Dashboard</h1>
+
+      {/* --- STATS CARDS (NEW) --- */}
+      <div style={styles.statsGrid}>
+        <div style={{...styles.card, borderLeft: '5px solid #2ecc71'}}>
+           <h3>Total Revenue</h3>
+           <p style={styles.statNumber}>₹ {stats.revenue.toLocaleString()}</p>
+        </div>
+        <div style={{...styles.card, borderLeft: '5px solid #3498db'}}>
+           <h3>Total Bookings</h3>
+           <p style={styles.statNumber}>{stats.bookings}</p>
+        </div>
+        <div style={{...styles.card, borderLeft: '5px solid #9b59b6'}}>
+           <h3>Active Movies</h3>
+           <p style={styles.statNumber}>{stats.movies}</p>
+        </div>
+        <div style={{...styles.card, borderLeft: '5px solid #f1c40f'}}>
+           <h3>Total Users</h3>
+           <p style={styles.statNumber}>{stats.users}</p>
+        </div>
+      </div>
       
       {/* --- ACTION BUTTONS --- */}
       <div style={{display:'flex', gap:'15px', marginBottom:'40px', flexWrap: 'wrap'}}>
@@ -66,11 +103,6 @@ const AdminDashboard = () => {
         <button className="btn" onClick={() => navigate('/admin/add-theatre')}>+ Add Theatre</button>
         <button className="btn" onClick={() => navigate('/admin/add-screen')}>+ Add Screen</button>
         <button className="btn" style={{backgroundColor: '#e87c03'}} onClick={() => navigate('/admin/schedule-show')}>+ Schedule Show</button>
-        
-        {/* NEW HISTORY BUTTON */}
-        <button className="btn" style={{backgroundColor: '#8e44ad'}} onClick={() => navigate('/admin/bookings')}>
-             View Booking History
-        </button>
       </div>
 
       {/* --- TABS --- */}
@@ -85,10 +117,18 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('shows')}>
             Shows
         </button>
+        <button 
+            style={{...styles.tab, borderBottom: activeTab === 'recent' ? '2px solid #e50914' : 'none'}}
+            onClick={() => setActiveTab('recent')}>
+            Recent Bookings
+        </button>
+        <button className="btn" style={{backgroundColor: '#27ae60'}} onClick={() => navigate('/admin/add-food')}>
+  + Add Food
+</button>
       </div>
 
       {/* --- LISTS --- */}
-      {activeTab === 'movies' ? (
+      {activeTab === 'movies' && (
         <table style={styles.table}>
           <thead>
             <tr style={{textAlign:'left', color: '#aaa'}}><th>Title</th><th>Genre</th><th>Duration</th><th>Action</th></tr>
@@ -106,7 +146,9 @@ const AdminDashboard = () => {
             ))}
           </tbody>
         </table>
-      ) : (
+      )}
+
+      {activeTab === 'shows' && (
         <table style={styles.table}>
           <thead>
             <tr style={{textAlign:'left', color: '#aaa'}}><th>Movie</th><th>Theatre</th><th>Screen</th><th>Time</th><th>Action</th></tr>
@@ -126,6 +168,28 @@ const AdminDashboard = () => {
           </tbody>
         </table>
       )}
+
+      {activeTab === 'recent' && (
+        <table style={styles.table}>
+           <thead>
+            <tr style={{textAlign:'left', color: '#aaa'}}><th>User</th><th>Movie</th><th>Amount</th><th>Status</th><th>Time</th></tr>
+          </thead>
+          <tbody>
+            {stats.recentBookings.map((booking) => (
+              <tr key={booking._id} style={{borderBottom:'1px solid #333'}}>
+                <td style={{padding:'15px'}}>{booking.user?.name || 'Guest'}</td>
+                {/* Safe check for movie title in case showtime is deleted */}
+                <td style={{padding:'15px'}}>{booking.showtime?.movie?.title || 'Unknown Movie'}</td>
+                <td style={{padding:'15px'}}>₹ {booking.totalAmount}</td>
+                <td style={{padding:'15px'}}>{booking.ticketStatus || 'Booked'}</td>
+                <td style={{padding:'15px'}}>{new Date(booking.createdAt).toLocaleString()}</td>
+              </tr>
+            ))}
+            {stats.recentBookings.length === 0 && <tr><td colSpan="5" style={{padding:'20px', textAlign:'center'}}>No bookings yet</td></tr>}
+          </tbody>
+        </table>
+      )}
+
     </div>
   );
 };
@@ -133,7 +197,11 @@ const AdminDashboard = () => {
 const styles = {
     tab: { background: 'none', border: 'none', color: 'white', padding: '10px 20px', fontSize: '18px', cursor: 'pointer', marginRight:'10px' },
     table: { width: '100%', borderCollapse: 'collapse', marginTop: '10px', backgroundColor: '#1e1e1e', borderRadius: '8px' },
-    deleteBtn: { backgroundColor: '#c0392b', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer' }
+    deleteBtn: { backgroundColor: '#c0392b', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer' },
+    // New Styles for Stats
+    statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' },
+    card: { backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.3)' },
+    statNumber: { fontSize: '32px', fontWeight: 'bold', margin: '10px 0 0 0' }
 };
 
 export default AdminDashboard;
