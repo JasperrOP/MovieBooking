@@ -28,6 +28,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/shows', showRoutes);
 app.use('/api/movies', movieRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/payment', require('./routes/paymentRoutes'));
 // 5. Test Route
 app.get('/', (req, res) => {
   res.send('API is running...');

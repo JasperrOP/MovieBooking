@@ -1,155 +1,155 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 
 const SeatMap = ({ show, selectedSeats, setSelectedSeats }) => {
-  const isBooked = (seatLabel) => show.bookedSeats.some(booked => booked.type === seatLabel);
+  const [localShow, setLocalShow] = useState(show);
 
+  // --- REAL-TIME UPDATE LOGIC ---
+  // Poll the server every 3 seconds to get the latest booked seats
+  useEffect(() => {
+    const fetchLatestData = async () => {
+      try {
+        // Handle case where show.movie is an object or a string ID
+        const movieId = typeof show.movie === 'object' ? show.movie._id : show.movie;
+        
+        const { data } = await axios.get(`/api/shows/movie/${movieId}`);
+        
+        // Find the specific showtime we are currently viewing
+        const updatedShow = data.find(s => s._id === show._id);
+        
+        if (updatedShow) {
+          setLocalShow(updatedShow);
+        }
+      } catch (error) {
+        console.error("Error updating seat status:", error);
+      }
+    };
+
+    // Initial fetch
+    fetchLatestData();
+
+    // Set interval
+    const interval = setInterval(fetchLatestData, 3000); 
+    
+    // Cleanup on unmount
+    return () => clearInterval(interval);
+  }, [show._id, show.movie]);
+
+
+  // --- SEAT CLICK HANDLER ---
   const handleSeatClick = (seatLabel, price) => {
-    if (isBooked(seatLabel)) return;
+    const bookedSeats = localShow.bookedSeats || [];
+
+    // 1. Prevent clicking if Seat is Booked
+    if (bookedSeats.includes(seatLabel)) {
+      return; 
+    }
+
+    // 2. Toggle Selection (Add/Remove)
     if (selectedSeats.includes(seatLabel)) {
       setSelectedSeats(selectedSeats.filter(s => s !== seatLabel));
     } else {
-      if (selectedSeats.length < 6) setSelectedSeats([...selectedSeats, seatLabel]);
-      else alert("Max 6 seats allowed.");
+      setSelectedSeats([...selectedSeats, seatLabel]);
     }
   };
 
-  return (
-    <div className="seat-map-container">
-      {/* 3D Curved Screen Effect */}
-      <div className="screen-container">
-        <div className="screen-glow"></div>
-        <div className="screen">SCREEN</div>
-      </div>
 
-      <div className="seats-grid">
-        {show.screen.seatConfiguration.map((row, rowIndex) => (
-          <div key={rowIndex} className="seat-row">
-            <div className="row-label">{row.rowLabel}</div>
-            
-            {Array.from({ length: row.seatCount }).map((_, seatIndex) => {
-              const seatLabel = `${row.rowLabel}${seatIndex + 1}`;
-              const booked = isBooked(seatLabel);
-              const selected = selectedSeats.includes(seatLabel);
-              const isPremium = row.price > 200; // Example logic
+  // --- RENDER LOGIC ---
+  const renderSeats = () => {
+    if (!localShow.screen || !localShow.screen.seatConfiguration) {
+        return <div style={{color:'#aaa'}}>No seat layout available.</div>;
+    }
 
-              return (
-                <div
-                  key={seatLabel}
-                  className={`seat ${booked ? 'booked' : selected ? 'selected' : ''} ${isPremium ? 'premium' : ''}`}
-                  onClick={() => handleSeatClick(seatLabel, row.price)}
-                  title={`${seatLabel} - Rs. ${row.price}`} // Tooltip
-                >
-                  {/* Small curve for seat top */}
-                  <div className="seat-top"></div> 
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-
-      {/* Legend */}
-      <div className="legend">
-        <div className="legend-item"><div className="seat"></div> Available</div>
-        <div className="legend-item"><div className="seat selected"></div> Selected</div>
-        <div className="legend-item"><div className="seat booked"></div> Booked</div>
-        <div className="legend-item"><div className="seat premium"></div> Premium</div>
-      </div>
-
-      {/* --- CSS STYLES INJECTED HERE FOR SIMPLICITY --- */}
-      <style>{`
-        .seat-map-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          margin-top: 30px;
-          perspective: 1000px; /* Essential for 3D effect */
-        }
-
-        /* THE CINEMA SCREEN */
-        .screen-container {
-          margin-bottom: 50px;
-          transform: rotateX(-10deg);
-          box-shadow: 0 50px 40px -20px rgba(255, 255, 255, 0.2);
-        }
-        .screen {
-          width: 300px;
-          height: 60px;
-          background: #fff;
-          transform: rotateX(-30deg) scale(0.8);
-          box-shadow: 0 3px 10px rgba(255,255,255,0.7);
-          border-radius: 20px 20px 0 0;
-          opacity: 0.8;
-          text-align: center;
-          line-height: 60px;
-          color: #000;
-          font-weight: bold;
-          letter-spacing: 5px;
-        }
-
-        /* SEAT GRID */
-        .seats-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        .seat-row {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-          justify-content: center;
-        }
-        .row-label {
-          width: 30px;
-          color: #888;
-          font-weight: bold;
-        }
-
-        /* INDIVIDUAL SEAT STYLING */
-        .seat {
-          width: 28px;
-          height: 24px;
-          background-color: #444; /* Standard Seat */
-          border-radius: 6px 6px 2px 2px;
-          cursor: pointer;
-          transition: 0.2s;
-          position: relative;
-        }
-        .seat:hover {
-          transform: scale(1.2);
-          background-color: #666;
-        }
-        .seat.selected {
-          background-color: #4caf50;
-          box-shadow: 0 0 10px #4caf50;
-        }
-        .seat.booked {
-          background-color: #222;
-          cursor: not-allowed;
-          opacity: 0.5;
-        }
-        .seat.premium {
-          border-top: 3px solid gold; /* Gold stripe for premium */
-        }
+    return localShow.screen.seatConfiguration.map((row) => (
+      <div key={row.rowLabel} style={styles.row}>
+        {/* Row Label (A, B, C...) */}
+        <span style={styles.rowLabel}>{row.rowLabel}</span>
         
-        .legend {
-          display: flex;
-          gap: 20px;
-          margin-top: 40px;
-          background: #1e1e1e;
-          padding: 10px 20px;
-          border-radius: 20px;
-        }
-        .legend-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          color: #ccc;
-        }
-      `}</style>
+        <div style={styles.seatsContainer}>
+          {Array.from({ length: row.seatCount }).map((_, index) => {
+            const seatNumber = index + 1;
+            const seatLabel = `${row.rowLabel}${seatNumber}`;
+            
+            // Check status based on LIVE data
+            const isBooked = (localShow.bookedSeats || []).includes(seatLabel);
+            const isSelected = selectedSeats.includes(seatLabel);
+
+            return (
+              <div
+                key={seatLabel}
+                onClick={() => handleSeatClick(seatLabel, row.price)}
+                style={{
+                  ...styles.seat,
+                  // Dynamic Styling based on Status
+                  backgroundColor: isBooked ? '#444' : isSelected ? '#e50914' : '#fff', 
+                  cursor: isBooked ? 'not-allowed' : 'pointer',
+                  color: isBooked ? '#777' : isSelected ? 'white' : 'black',
+                  border: isBooked ? '1px solid #444' : isSelected ? 'none' : '1px solid #ccc',
+                  opacity: isBooked ? 0.6 : 1
+                }}
+                title={isBooked ? `Seat ${seatLabel} (Unavailable)` : `Seat ${seatLabel} - Rs. ${row.price}`}
+              >
+                {seatNumber}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ));
+  };
+
+  return (
+    <div style={styles.container}>
+      {/* Screen Visual */}
+      <div style={styles.screen}>SCREEN THIS WAY</div>
+      
+      {/* The Grid */}
+      <div style={styles.mapWrapper}>
+        {renderSeats()}
+      </div>
+      
+      {/* Legend / Key */}
+      <div style={styles.legend}>
+        <div style={styles.legendItem}>
+            <div style={{...styles.dot, background:'#fff', border:'1px solid #ccc'}}></div> 
+            Available
+        </div>
+        <div style={styles.legendItem}>
+            <div style={{...styles.dot, background:'#e50914'}}></div> 
+            Selected
+        </div>
+        <div style={styles.legendItem}>
+            <div style={{...styles.dot, background:'#444', border:'1px solid #444', opacity:0.6}}></div> 
+            Booked
+        </div>
+      </div>
     </div>
   );
+};
+
+// --- STYLES ---
+const styles = {
+  container: { marginTop: '20px', textAlign: 'center' },
+  screen: { 
+    height: '15px', background: 'linear-gradient(to bottom, #eee, #aaa)', 
+    margin: '0 auto 50px auto', width: '80%', borderRadius: '50% 50% 0 0', 
+    transform: 'perspective(400px) rotateX(-10deg)', 
+    boxShadow: '0 20px 30px rgba(255,255,255,0.1)',
+    color: '#000', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight:'bold', letterSpacing:'2px'
+  },
+  mapWrapper: { display: 'inline-block', padding: '30px', background: '#222', borderRadius: '12px', border: '1px solid #333' },
+  row: { display: 'flex', alignItems: 'center', marginBottom: '12px', justifyContent: 'center' },
+  rowLabel: { width: '30px', fontWeight: 'bold', color: '#aaa', marginRight: '15px', textAlign:'right' },
+  seatsContainer: { display: 'flex', gap: '8px' },
+  seat: {
+    width: '32px', height: '32px', borderRadius: '6px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '12px', fontWeight: 'bold', transition: 'all 0.2s ease',
+    userSelect: 'none'
+  },
+  legend: { display: 'flex', justifyContent: 'center', gap: '30px', marginTop: '30px', color: '#ccc' },
+  legendItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' },
+  dot: { width: '16px', height: '16px', borderRadius: '4px' }
 };
 
 export default SeatMap;

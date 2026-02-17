@@ -17,24 +17,34 @@ const addShowtime = async (req, res) => {
   res.status(201).json(showtime);
 };
 
+// @desc    Get all shows (For Admin Dashboard)
+// @route   GET /api/shows
+const getAllShows = async (req, res) => {
+  try {
+    const shows = await Showtime.find({})
+      .populate('movie', 'title')
+      .populate('theatre', 'name')
+      .populate('screen', 'name');
+    res.json(shows);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Get shows for a specific movie with Dynamic Pricing
 // @route   GET /api/shows/movie/:id
 const getShowsForMovie = async (req, res) => {
   const movieId = req.params.id;
 
-  // 1. Find shows and get full details of Theatre and Screen
   const shows = await Showtime.find({ movie: movieId })
     .populate('theatre', 'name location city')
     .populate('screen', 'name seatConfiguration');
 
-  // 2. Apply Dynamic Pricing Algorithm
   const showsWithDynamicPrice = shows.map(show => {
-    // Calculate Occupancy
     const totalSeats = show.screen.seatConfiguration.reduce((acc, row) => acc + row.seatCount, 0);
     const bookedCount = show.bookedSeats.length;
     const occupancy = bookedCount / totalSeats;
 
-    // Calculate Time Remaining
     const now = new Date();
     const showTime = new Date(show.startTime);
     const hoursUntilShow = (showTime - now) / (1000 * 60 * 60);
@@ -42,7 +52,6 @@ const getShowsForMovie = async (req, res) => {
     let finalPrice = show.price;
     let isDynamic = false;
 
-    // RULE: If show is soon (< 2 hours) AND empty (< 50%), give 20% Discount
     if (hoursUntilShow > 0 && hoursUntilShow < 2 && occupancy < 0.5) {
       finalPrice = show.price * 0.8;
       isDynamic = true;
@@ -51,12 +60,29 @@ const getShowsForMovie = async (req, res) => {
     return {
       ...show.toObject(),
       originalPrice: show.price,
-      price: Math.round(finalPrice), // Send the discounted price
-      isDynamicDeal: isDynamic       // Frontend can show a "Deal!" badge
+      price: Math.round(finalPrice),
+      isDynamicDeal: isDynamic       
     };
   });
 
   res.json(showsWithDynamicPrice);
 };
 
-module.exports = { addShowtime, getShowsForMovie };
+// @desc    Delete a showtime
+// @route   DELETE /api/shows/:id
+// @access  Private/Admin
+const deleteShow = async (req, res) => {
+  try {
+    const show = await Showtime.findById(req.params.id);
+    if (!show) {
+      res.status(404);
+      throw new Error('Show not found');
+    }
+    await Showtime.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Show removed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { addShowtime, getShowsForMovie, getAllShows, deleteShow };

@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { addShowtime, getShowsForMovie } = require('../controllers/showController');
+const { addShowtime, getShowsForMovie, getAllShows, deleteShow } = require('../controllers/showController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
-// Public: Anyone can see shows (and get the dynamic price)
+// Public: Get shows for a movie
 router.get('/movie/:id', getShowsForMovie);
 
-// Admin: Only admins can create shows
-router.post('/', protect, admin, addShowtime);
+// Admin Routes
+router.route('/').post(protect, admin, addShowtime).get(getAllShows); // Added GET for admin list
+router.route('/:id').delete(protect, admin, deleteShow); // Added DELETE
 
 module.exports = router;

@@ -24,4 +24,22 @@ const getMovieById = async (req, res) => {
   }
 };
 
-module.exports = { getAllMovies, getMovieById };
+// @desc    Delete a movie
+// @route   DELETE /api/movies/:id
+// @access  Private/Admin
+const deleteMovie = async (req, res) => {
+  try {
+    const movie = await Movie.findById(req.params.id);
+    if (!movie) {
+      res.status(404);
+      throw new Error('Movie not found');
+    }
+    
+    await Movie.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Movie removed' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getAllMovies, getMovieById, deleteMovie };
