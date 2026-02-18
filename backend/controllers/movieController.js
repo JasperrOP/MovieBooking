@@ -41,5 +41,26 @@ const deleteMovie = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+const updateMovie = async (req, res) => {
+  const { title, description, duration, genre, language, releaseDate, posterUrl } = req.body;
 
-module.exports = { getAllMovies, getMovieById, deleteMovie };
+  const movie = await Movie.findById(req.params.id);
+
+  if (movie) {
+    movie.title = title || movie.title;
+    movie.description = description || movie.description;
+    movie.duration = duration || movie.duration;
+    movie.genre = genre || movie.genre;
+    movie.language = language || movie.language;
+    movie.releaseDate = releaseDate || movie.releaseDate;
+    movie.posterUrl = posterUrl || movie.posterUrl;
+
+    const updatedMovie = await movie.save();
+    res.json(updatedMovie);
+  } else {
+    res.status(404);
+    throw new Error('Movie not found');
+  }
+};
+
+module.exports = { getAllMovies, getMovieById, deleteMovie, updateMovie };

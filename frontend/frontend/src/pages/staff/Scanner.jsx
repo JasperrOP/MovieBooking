@@ -1,154 +1,117 @@
 import { useState } from 'react';
+import { Scanner } from '@yudiel/react-qr-scanner';
 import axios from 'axios';
 
-const Scanner = () => {
-  const [ticketId, setTicketId] = useState('');
-  const [status, setStatus] = useState(null); // 'success', 'error', 'loading'
-  const [result, setResult] = useState(null);
+const StaffScanner = () => {
+  const [scanResult, setScanResult] = useState(null);
   const [message, setMessage] = useState('');
+  const [manualId, setManualId] = useState('');
+  const [isScanning, setIsScanning] = useState(true);
 
-  const handleVerify = async (e) => {
-    e.preventDefault();
-    setStatus('loading');
-    setMessage('');
-    setResult(null);
+  // Function to handle the verification logic
+  const verifyTicket = async (bookingId) => {
+    // Prevent double scanning or empty inputs
+    if (!isScanning || !bookingId) return; 
+    
+    setIsScanning(false); // Pause scanning while processing
+    setScanResult(bookingId);
+    setMessage({ type: 'info', text: 'Verifying...' });
 
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-      const config = {
-        headers: {
-          Authorization: `Bearer ${userInfo.token}`,
-          'Content-Type': 'application/json',
-        },
-      };
+      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      
+      // --- FIX IS HERE ---
+      // 1. Changed PUT to POST
+      // 2. URL is now '/api/staff/verify-ticket' (removed ID from URL)
+      // 3. Data is sent in the body: { ticketId: bookingId }
+      const { data } = await axios.post(
+        '/api/staff/verify-ticket', 
+        { ticketId: bookingId }, 
+        config
+      );
+      
+      // Success Message
+      setMessage({ 
+        type: 'success', 
+        text: `✅ Access Granted! User: ${data.booking?.user || 'Guest'}` 
+      });
 
-      const { data } = await axios.post('/api/staff/verify-ticket', { ticketId }, config);
-
-      if (data.valid) {
-        setStatus('success');
-        setMessage(data.message); // "Access Granted"
-        setResult(data.booking);
-      } else {
-        setStatus('error');
-        setMessage(data.message);
-      }
     } catch (error) {
       console.error(error);
-      setStatus('error');
-      setMessage(error.response?.data?.message || 'Verification Failed');
+      const errorMsg = error.response?.data?.message || 'Verification Failed';
+      setMessage({ type: 'error', text: `❌ ${errorMsg}` });
     }
+  };
+
+  // Helper to reset and scan again
+  const handleReset = () => {
+    setScanResult(null);
+    setMessage('');
+    setManualId('');
+    setIsScanning(true);
   };
 
   return (
     <div style={styles.container}>
-      <div style={styles.card}>
-        <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>🎟️ Ticket Scanner</h2>
-        
-        <form onSubmit={handleVerify} style={styles.form}>
-          <input
-            type="text"
-            placeholder="Enter Ticket ID / Scan QR"
-            value={ticketId}
-            onChange={(e) => setTicketId(e.target.value)}
+      <h2>Ticket Scanner</h2>
+
+      {/* --- CAMERA SCANNER --- */}
+      {isScanning ? (
+        <div style={styles.scannerWrapper}>
+            <Scanner 
+                onScan={(result) => {
+                    if (result && result[0]) {
+                        verifyTicket(result[0].rawValue);
+                    }
+                }}
+                components={{ audio: false, finder: true }}
+                styles={{ container: { width: '100%', maxWidth: '400px' } }}
+            />
+            <p style={{marginTop: '10px'}}>Point camera at QR code</p>
+        </div>
+      ) : (
+        <div style={styles.resultCard}>
+           {/* Result Display */}
+           <h3 style={{ color: message.type === 'success' ? '#2ecc71' : message.type === 'error' ? '#e74c3c' : '#3498db' }}>
+             {message.text}
+           </h3>
+           <button onClick={handleReset} className="btn" style={{marginTop: '20px', backgroundColor: '#333'}}>
+             Scan Next Ticket
+           </button>
+        </div>
+      )}
+
+      <div style={styles.divider}>OR</div>
+
+      {/* --- MANUAL ENTRY FALLBACK --- */}
+      <div style={styles.manualEntry}>
+        <input 
+            type="text" 
+            placeholder="Enter Booking ID manually" 
+            value={manualId}
+            onChange={(e) => setManualId(e.target.value)}
             style={styles.input}
-            autoFocus
-          />
-          <button type="submit" style={styles.button} disabled={status === 'loading'}>
-            {status === 'loading' ? 'Verifying...' : 'Verify Ticket'}
-          </button>
-        </form>
-
-        {/* --- RESULTS DISPLAY --- */}
-        {message && (
-          <div style={{
-            ...styles.resultBox,
-            backgroundColor: status === 'success' ? 'rgba(46, 204, 113, 0.2)' : 'rgba(231, 76, 60, 0.2)',
-            borderColor: status === 'success' ? '#2ecc71' : '#e74c3c'
-          }}>
-            <h3 style={{ color: status === 'success' ? '#2ecc71' : '#e74c3c', marginTop: 0 }}>
-              {status === 'success' ? '✅ VALID TICKET' : '❌ INVALID / USED'}
-            </h3>
-            <p style={{ fontSize: '18px' }}>{message}</p>
-            
-            {result && (
-              <div style={{ textAlign: 'left', marginTop: '15px' }}>
-                <p><strong>Movie:</strong> {result.movie}</p>
-                <p><strong>Guest:</strong> {result.user}</p>
-                <p><strong>Seats:</strong> {result.seats.join(', ')}</p>
-              </div>
-            )}
-          </div>
-        )}
-        
+        />
         <button 
-          onClick={() => {setTicketId(''); setStatus(null); setMessage(''); setResult(null)}}
-          style={styles.clearBtn}
+            className="btn" 
+            onClick={() => verifyTicket(manualId)}
+            disabled={!manualId || !isScanning}
         >
-          Scan Next
+            Verify ID
         </button>
-
       </div>
     </div>
   );
 };
 
 const styles = {
-  container: {
-    minHeight: '80vh',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    color: 'white',
-  },
-  card: {
-    backgroundColor: '#1e1e1e',
-    padding: '40px',
-    borderRadius: '12px',
-    width: '100%',
-    maxWidth: '500px',
-    border: '1px solid #333',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '15px',
-  },
-  input: {
-    padding: '15px',
-    fontSize: '18px',
-    borderRadius: '8px',
-    border: '1px solid #444',
-    backgroundColor: '#2c2c2c',
-    color: 'white',
-    outline: 'none',
-  },
-  button: {
-    padding: '15px',
-    fontSize: '18px',
-    borderRadius: '8px',
-    border: 'none',
-    backgroundColor: '#3498db',
-    color: 'white',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-  },
-  resultBox: {
-    marginTop: '25px',
-    padding: '20px',
-    borderRadius: '8px',
-    border: '1px solid',
-    textAlign: 'center',
-  },
-  clearBtn: {
-    marginTop: '20px',
-    background: 'none',
-    border: 'none',
-    color: '#aaa',
-    textDecoration: 'underline',
-    cursor: 'pointer',
-    width: '100%'
-  }
+  container: { padding: '20px', color: 'white', maxWidth: '500px', margin: '0 auto', textAlign: 'center' },
+  scannerWrapper: { border: '2px solid #333', borderRadius: '10px', overflow: 'hidden', margin: '0 auto' },
+  resultCard: { backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '10px', marginTop: '20px' },
+  divider: { margin: '30px 0', color: '#aaa', fontWeight: 'bold' },
+  manualEntry: { display: 'flex', gap: '10px', justifyContent: 'center' },
+  input: { padding: '10px', borderRadius: '5px', border: '1px solid #333', backgroundColor: '#222', color: 'white', width: '70%' }
 };
 
-export default Scanner;
+export default StaffScanner;

@@ -1,145 +1,77 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import QRCode from "react-qr-code";
 
 const BookingSuccess = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchBooking = async () => {
       try {
         const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
         
+        // Redirect if not logged in
+        if (!userInfo) {
+            navigate('/login');
+            return;
+        }
+
+        const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
         const { data } = await axios.get(`/api/bookings/${id}`, config);
         setBooking(data);
         setLoading(false);
       } catch (error) {
-        console.error("Error fetching receipt:", error);
+        console.error("Error fetching booking:", error);
+        setError("Failed to load booking details.");
         setLoading(false);
       }
     };
     fetchBooking();
-  }, [id]);
+  }, [id, navigate]);
 
-  const handlePrint = () => {
-    window.print(); 
-  };
-
-  if (loading) return <div style={{color:'white', padding:'50px', textAlign:'center'}}>Generating Receipt...</div>;
-  if (!booking) return <div style={{color:'white', padding:'50px', textAlign:'center'}}>Booking not found.</div>;
+  if (loading) return <div style={{color:'white', textAlign:'center', marginTop:'50px'}}>Loading...</div>;
+  if (error) return <div style={{color:'#e74c3c', textAlign:'center', marginTop:'50px'}}>{error}</div>;
+  if (!booking) return <div style={{color:'white', textAlign:'center', marginTop:'50px'}}>Booking not found</div>;
 
   return (
     <div style={styles.container}>
-      
-      {/* --- TICKET AREA (This part prints) --- */}
-      <div style={styles.ticket} className="printable-ticket">
-        <div style={styles.header}>
-            <h1 style={{margin:0, fontSize: '22px'}}>MOVIE TICKET</h1>
-            <p style={{margin:0, fontSize: '12px', opacity: 0.8}}>Booking ID: {booking._id}</p>
-        </div>
+      <div style={styles.card}>
+        <h1 style={{color: '#2ecc71', marginBottom: '10px'}}>Booking Confirmed!</h1>
+        <p style={{color: '#ccc', marginBottom: '20px'}}>Show this QR code at the theatre entrance.</p>
         
-        <div style={styles.content}>
-            <div style={styles.row}>
-                <img 
-                    src={booking.showtime.movie.posterUrl || 'https://via.placeholder.com/100x150'} 
-                    alt="poster" 
-                    style={{width:'80px', borderRadius:'5px', backgroundColor:'#ccc'}} 
-                />
-                <div style={{marginLeft:'20px'}}>
-                    <h2 style={{margin: '0 0 5px 0', fontSize:'18px'}}>{booking.showtime.movie.title}</h2>
-                    <p style={{color:'#555', margin:0, fontWeight:'bold'}}>{booking.showtime.theatre.name}</p>
-                    <p style={{color:'#777', fontSize:'14px', margin:0}}>{booking.showtime.screen.name}</p>
-                </div>
-            </div>
-
-            <hr style={{border:'1px dashed #ccc', margin:'20px 0'}}/>
-
-            <div style={styles.infoGrid}>
-                <div>
-                    <span style={styles.label}>Date & Time</span>
-                    <p style={styles.value}>{new Date(booking.showtime.startTime).toLocaleString()}</p>
-                </div>
-                <div>
-                    <span style={styles.label}>Seats</span>
-                    <p style={styles.value}>{booking.seats.join(', ')}</p>
-                </div>
-            </div>
-
-            {/* --- FOOD SECTION --- */}
-            {booking.foodItems && booking.foodItems.length > 0 && (
-              <div style={{marginTop: '20px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '5px'}}>
-                 <span style={styles.label}>Snacks & Drinks</span>
-                 <ul style={{margin: '5px 0 0 15px', padding: 0, fontSize: '14px', color: '#333'}}>
-                   {booking.foodItems.map((item, index) => (
-                     <li key={index}>{item.name} x{item.quantity}</li>
-                   ))}
-                 </ul>
-              </div>
-            )}
-
-            <hr style={{border:'1px dashed #ccc', margin:'20px 0'}}/>
-
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-               <span style={styles.label}>TOTAL PAID</span>
-               <p style={{fontSize: '20px', fontWeight: 'bold', margin:0, color:'#e50914'}}>
-                  Rs. {booking.totalAmount}
-               </p>
-            </div>
-            
-            <div style={{textAlign:'center', marginTop:'30px', backgroundColor: '#f5f5f5', padding: '15px', borderRadius: '8px'}}>
-                <img 
-                   src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${booking._id}`} 
-                   alt="Ticket QR" 
-                />
-                <p style={{fontSize:'12px', color:'#777', marginTop: '5px'}}>Scan at the Entrance</p>
-            </div>
+        {/* --- QR CODE DISPLAY --- */}
+        <div style={{ background: 'white', padding: '16px', borderRadius: '8px', margin: '0 auto 20px auto', width: 'fit-content' }}>
+            <QRCode 
+                value={booking._id} 
+                size={180}
+            />
         </div>
-      </div>
-      
-      {/* --- ACTION BUTTONS --- */}
-      <div className="no-print" style={{marginTop:'30px', display:'flex', gap:'15px', flexWrap:'wrap', justifyContent:'center'}}>
-          <button onClick={handlePrint} className="btn" style={{backgroundColor:'#3498db', padding:'12px 20px', fontSize:'16px'}}>
-            🖨️ Print Ticket
-          </button>
-          
-          {/* --- THE FOOD BUTTON --- */}
-          {booking.showtime.theatre.hasFoodService && (
-             <Link to={`/order-food/${booking._id}`} className="btn" style={{textDecoration:'none', backgroundColor:'#f1c40f', color:'black', fontWeight:'bold', padding:'12px 20px', fontSize:'16px'}}>
-               🍿 Add Snacks
-             </Link>
-          )}
+        {/* ----------------------- */}
 
-          <Link to="/" className="btn" style={{textDecoration:'none', backgroundColor:'#555', padding:'12px 20px', fontSize:'16px'}}>
-            Home
-          </Link>
-      </div>
+        <div style={styles.details}>
+            <p><strong>Movie:</strong> {booking.showtime?.movie?.title || "Unknown Movie"}</p>
+            <p><strong>Seats:</strong> {booking.seats?.join(', ')}</p>
+            <p><strong>Date:</strong> {booking.showtime?.startTime ? new Date(booking.showtime.startTime).toLocaleDateString() : "N/A"}</p>
+            <p><strong>Time:</strong> {booking.showtime?.startTime ? new Date(booking.showtime.startTime).toLocaleTimeString() : "N/A"}</p>
+            <p><strong>Total Amount:</strong> ₹ {booking.totalAmount}</p>
+            <p><strong>Booking ID:</strong> <span style={{fontSize: '12px', color:'#aaa'}}>{booking._id}</span></p>
+        </div>
 
-      <style>
-        {`
-          @media print {
-            body * { visibility: hidden; }
-            .printable-ticket, .printable-ticket * { visibility: visible; }
-            .printable-ticket { position: absolute; left: 50%; top: 50px; transform: translateX(-50%); width: 100%; max-width: 400px; border: 1px solid #000; }
-            .no-print { display: none !important; }
-          }
-        `}
-      </style>
+        <button className="btn" onClick={() => navigate('/')} style={{width: '100%', backgroundColor: '#e50914'}}>Go Home</button>
+      </div>
     </div>
   );
 };
 
 const styles = {
-    container: { display: 'flex', flexDirection:'column', alignItems:'center', padding: '40px', color: 'white', minHeight:'100vh' },
-    ticket: { backgroundColor: 'white', color: '#333', borderRadius: '16px', width: '100%', maxWidth: '380px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' },
-    header: { backgroundColor: '#2ecc71', color: 'white', padding: '20px', textAlign: 'center' },
-    content: { padding: '25px' },
-    row: { display: 'flex', alignItems: 'center' },
-    infoGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
-    label: { fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' },
-    value: { fontSize: '15px', fontWeight: 'bold', margin: '5px 0 0 0', color: '#222' }
+  container: { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: '20px', backgroundColor: '#121212' },
+  card: { backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '12px', textAlign: 'center', color: 'white', maxWidth: '400px', width: '100%', boxShadow: '0 8px 20px rgba(0,0,0,0.5)' },
+  details: { textAlign: 'left', margin: '20px 0', backgroundColor: '#2c2c2c', padding: '20px', borderRadius: '8px', fontSize: '15px', lineHeight: '1.6' }
 };
 
 export default BookingSuccess;

@@ -4,6 +4,7 @@ import Register from './pages/Register';
 import Home from './pages/Home';
 import Booking from './pages/Booking';
 import BookingSuccess from './pages/BookingSuccess'; // <--- Import
+import EditMovie from './pages/admin/EditMovie';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -44,6 +45,7 @@ function App() {
             <Route path="/admin/add-screen" element={<AddScreen />} />
             <Route path="/admin/schedule-show" element={<ScheduleShow />} />
             <Route path="/admin/add-food" element={<AddFood />} />
+            <Route path="/admin/edit-movie/:id" element={<EditMovie />} />
             
             {/* Admin History Route */}
             <Route path="/admin/bookings" element={<BookingHistory />} />

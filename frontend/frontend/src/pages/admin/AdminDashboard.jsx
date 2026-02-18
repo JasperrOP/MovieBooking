@@ -142,6 +142,15 @@ const AdminDashboard = () => {
                 <td style={{padding:'15px'}}>
                   <button style={styles.deleteBtn} onClick={() => handleDeleteMovie(movie._id)}>Delete</button>
                 </td>
+                <td style={{padding:'15px'}}>
+  <button 
+    style={{...styles.deleteBtn, backgroundColor: '#f39c12', marginRight: '10px'}} 
+    onClick={() => navigate(`/admin/edit-movie/${movie._id}`)}
+  >
+    Edit
+  </button>
+  <button style={styles.deleteBtn} onClick={() => handleDeleteMovie(movie._id)}>Delete</button>
+</td>
               </tr>
             ))}
           </tbody>
