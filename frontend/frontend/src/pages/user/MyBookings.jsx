@@ -13,8 +13,6 @@ const MyBookings = () => {
 
       try {
         const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-        // We need a route to get user's specific bookings. 
-        // Assuming GET /api/bookings/mybookings exists or we filter generic get
         const { data } = await axios.get('/api/bookings/mybookings', config);
         setBookings(data);
       } catch (error) {
@@ -28,22 +26,31 @@ const MyBookings = () => {
     <div style={{ padding: '40px', color: 'white', minHeight: '100vh' }}>
       <h2>My Bookings</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '20px' }}>
+        {bookings.length === 0 && <p>No bookings found.</p>}
+        
         {bookings.map((booking) => (
           <div key={booking._id} style={styles.ticketCard}>
             
-            {/* Movie Info */}
             <div style={{flex: 1}}>
               <h3 style={{color: '#e50914'}}>{booking.showtime?.movie?.title}</h3>
               <p><strong>Theatre:</strong> {booking.showtime?.theatre?.name}</p>
               <p><strong>Time:</strong> {new Date(booking.showtime?.startTime).toLocaleString()}</p>
               <p><strong>Seats:</strong> {booking.seats.join(', ')}</p>
+              {booking.foodItems?.length > 0 && (
+                <p style={{color: '#f1c40f', fontSize:'14px'}}>+ {booking.foodItems.length} Snack Items</p>
+              )}
             </div>
 
-            {/* CONDITIONAL ACTION SECTION */}
             <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '10px'}}>
-               <button className="btn" style={{backgroundColor: '#333'}}>View Ticket</button>
+               <button 
+                  className="btn" 
+                  style={{backgroundColor: '#333'}}
+                  onClick={() => navigate(`/booking/success/${booking._id}`)}
+                >
+                  View Ticket
+               </button>
                
-               {/* THE LOGIC: Check if Theatre has Food Service */}
+               {/* Conditional Button */}
                {booking.showtime?.theatre?.hasFoodService ? (
                  <button 
                    className="btn" 
@@ -54,7 +61,7 @@ const MyBookings = () => {
                  </button>
                ) : (
                  <span style={{color: '#666', fontSize:'12px', textAlign:'center'}}>
-                   Food ordering not available <br/> at this location
+                   No Food Service
                  </span>
                )}
             </div>

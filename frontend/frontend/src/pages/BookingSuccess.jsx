@@ -43,9 +43,8 @@ const BookingSuccess = () => {
         
         <div style={styles.content}>
             <div style={styles.row}>
-                {/* Fallback image if poster is missing */}
                 <img 
-                    src={booking.showtime.movie.posterUrl || '/vite.svg'} 
+                    src={booking.showtime.movie.posterUrl || 'https://via.placeholder.com/100x150'} 
                     alt="poster" 
                     style={{width:'80px', borderRadius:'5px', backgroundColor:'#ccc'}} 
                 />
@@ -69,7 +68,7 @@ const BookingSuccess = () => {
                 </div>
             </div>
 
-            {/* --- FOOD SECTION (NEW) --- */}
+            {/* --- FOOD SECTION --- */}
             {booking.foodItems && booking.foodItems.length > 0 && (
               <div style={{marginTop: '20px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '5px'}}>
                  <span style={styles.label}>Snacks & Drinks</span>
@@ -100,13 +99,13 @@ const BookingSuccess = () => {
         </div>
       </div>
       
-      {/* --- ACTION BUTTONS (Hidden during print) --- */}
+      {/* --- ACTION BUTTONS --- */}
       <div className="no-print" style={{marginTop:'30px', display:'flex', gap:'15px', flexWrap:'wrap', justifyContent:'center'}}>
           <button onClick={handlePrint} className="btn" style={{backgroundColor:'#3498db', padding:'12px 20px', fontSize:'16px'}}>
             🖨️ Print Ticket
           </button>
           
-          {/* Link to order food if allowed */}
+          {/* --- THE FOOD BUTTON --- */}
           {booking.showtime.theatre.hasFoodService && (
              <Link to={`/order-food/${booking._id}`} className="btn" style={{textDecoration:'none', backgroundColor:'#f1c40f', color:'black', fontWeight:'bold', padding:'12px 20px', fontSize:'16px'}}>
                🍿 Add Snacks

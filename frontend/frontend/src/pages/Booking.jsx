@@ -15,7 +15,7 @@ const loadRazorpayScript = () => {
 };
 
 const Booking = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // Movie ID
   const navigate = useNavigate();
   const [movie, setMovie] = useState(null);
   const [shows, setShows] = useState([]);
@@ -31,6 +31,8 @@ const Booking = () => {
       try {
         const movieRes = await axios.get(`/api/movies/${id}`);
         setMovie(movieRes.data);
+        
+        // This endpoint returns shows with dynamic pricing logic applied
         const showRes = await axios.get(`/api/shows/movie/${id}`);
         setShows(showRes.data);
       } catch (err) { console.error(err); }
@@ -38,11 +40,11 @@ const Booking = () => {
     fetchData();
   }, [id]);
 
-  // --- PROCESS BOOKING AND REDIRECT TO RECEIPT ---
+  // --- PROCESS BOOKING ---
   const processBooking = async (paymentId) => {
      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
      
-     // 1. Calculate Total Amount
+     // Calculate total amount
      const totalAmount = selectedSeats.length * selectedShow.price;
 
      try {
@@ -57,13 +59,12 @@ const Booking = () => {
         showtimeId: selectedShow._id,
         seats: selectedSeats,
         paymentId: paymentId,
-        totalAmount: totalAmount // <--- FIXED: Added this field
+        totalAmount: totalAmount // FIXED: Including totalAmount
       };
 
-      // 2. Send to Backend
       const { data } = await axios.post('/api/bookings', bookingPayload, config);
       
-      // 3. Redirect to the new Receipt Page
+      // Redirect to Receipt
       navigate(`/booking/success/${data._id}`); 
 
      } catch (error) {
@@ -87,12 +88,14 @@ const Booking = () => {
 
     try {
       const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      
+      // Create Order in Backend
       const { data: order } = await axios.post('/api/payment/create-order', {
         amount: totalAmount
       }, config);
 
       const options = {
-        key: "YOUR_RAZORPAY_KEY_ID_HERE", // Replace with your actual key
+        key: "rzp_test_S7fwyuDD8ht4sH", // <--- REPLACE WITH YOUR ACTUAL KEY ID
         amount: order.amount,
         currency: order.currency,
         name: "MovieBooking App",
@@ -113,7 +116,7 @@ const Booking = () => {
 
     } catch (err) {
       console.error(err);
-      alert("Error creating payment order");
+      alert("Error creating payment order. Check console.");
     }
   };
 
@@ -135,10 +138,28 @@ const Booking = () => {
             {shows.map((show) => (
               <div key={show._id} style={styles.card}>
                 <h3>{show.theatre.name}</h3>
-                <p>{new Date(show.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                <div style={{ margin: '15px 0', fontSize: '18px', fontWeight: 'bold', color: '#4cd137' }}>
-                  Rs. {show.price}
-                </div>
+                <p style={{color:'#aaa'}}>{new Date(show.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                
+                {/* --- DYNAMIC PRICE DISPLAY --- */}
+                {show.isDynamicDeal ? (
+                    <div style={{ margin: '15px 0' }}>
+                        <span style={{ textDecoration: 'line-through', color: '#888', marginRight: '8px', fontSize: '14px' }}>
+                            Rs. {show.originalPrice}
+                        </span>
+                        <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#4cd137' }}>
+                            Rs. {show.price}
+                        </span>
+                        <div style={{ color: '#f1c40f', fontSize: '12px', fontWeight: 'bold', marginTop: '5px' }}>
+                            ⚡ Limited Time Deal!
+                        </div>
+                    </div>
+                ) : (
+                    <div style={{ margin: '15px 0', fontSize: '18px', fontWeight: 'bold', color: 'white' }}>
+                        Rs. {show.price}
+                    </div>
+                )}
+                {/* ----------------------------- */}
+
                 <button className="btn" style={{ width: '100%' }} onClick={() => setSelectedShow(show)}>
                   Select Seats
                 </button>
@@ -151,13 +172,20 @@ const Booking = () => {
              ← Back
           </button>
           
+          <h2 style={{borderBottom: '1px solid #333', paddingBottom: '10px'}}>
+            {selectedShow.theatre.name} 
+            <span style={{fontSize: '16px', color: '#aaa', marginLeft: '15px'}}>
+              ({new Date(selectedShow.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})
+            </span>
+          </h2>
+
           <SeatMap show={selectedShow} selectedSeats={selectedSeats} setSelectedSeats={setSelectedSeats} />
 
           {selectedSeats.length > 0 && (
             <div style={styles.footer}>
                <div>
-                 <span style={{color: '#aaa'}}>Total: </span>
-                 <span style={{fontSize: '24px', fontWeight: 'bold'}}>
+                 <span style={{color: '#aaa'}}>Total ({selectedSeats.length} seats): </span>
+                 <span style={{fontSize: '24px', fontWeight: 'bold', color: '#4cd137'}}>
                    Rs. {selectedSeats.length * selectedShow.price}
                  </span>
                </div>
@@ -191,7 +219,7 @@ const Booking = () => {
                 <h3>Scan to Pay: Rs. {selectedSeats.length * selectedShow.price}</h3>
                 <div style={{border:'1px solid #ddd', padding:'10px', display:'inline-block'}}>
                     <img 
-                    src="/image.png" // Ensure this image exists in public folder
+                    src="/image.png" 
                     alt="Payment QR" 
                     style={{width: '150px', height: '150px'}} 
                     />
@@ -213,7 +241,7 @@ const Booking = () => {
 const styles = {
   container: { padding: '40px', color: 'white' },
   grid: { display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '20px' },
-  card: { backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px', width: '220px', border: '1px solid #333' },
+  card: { backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px', width: '250px', border: '1px solid #333', textAlign:'center' },
   footer: {
     position: 'fixed', bottom: 0, left: 0, width: '100%',
     backgroundColor: '#111', padding: '20px', borderTop: '1px solid #333',

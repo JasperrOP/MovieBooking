@@ -9,11 +9,24 @@ const createBooking = async (req, res) => {
   const { showtimeId, seats, paymentId, foodItems, totalAmount } = req.body;
 
   try {
+    // 1. Find the Showtime
     const showtime = await Showtime.findById(showtimeId);
     if (!showtime) {
       return res.status(404).json({ message: 'Showtime not found' });
     }
 
+    // --- FIX 1: Check for Double Booking ---
+    // If any of the requested seats are already in bookedSeats, stop!
+    const isAlreadyBooked = showtime.bookedSeats.some(seat => seats.includes(seat));
+    if (isAlreadyBooked) {
+      return res.status(400).json({ message: 'One or more selected seats are already booked. Please choose others.' });
+    }
+
+    // --- FIX 2: Lock the Seats in Showtime ---
+    showtime.bookedSeats.push(...seats);
+    await showtime.save();
+
+    // 3. Create the Booking
     const booking = new Booking({
       user: req.user._id,
       showtime: showtimeId,
@@ -26,6 +39,7 @@ const createBooking = async (req, res) => {
 
     const createdBooking = await booking.save();
     res.status(201).json(createdBooking);
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -41,7 +55,7 @@ const getBookingById = async (req, res) => {
         path: 'showtime',
         populate: [
           { path: 'movie', select: 'title posterUrl' },
-          { path: 'theatre', select: 'name location' },
+          { path: 'theatre', select: 'name location hasFoodService' },
           { path: 'screen', select: 'name' }
         ]
       });
@@ -63,14 +77,10 @@ const getMyBookings = async (req, res) => {
     const bookings = await Booking.find({ user: req.user._id })
       .populate({
         path: 'showtime',
-        populate: {
-          path: 'theatre',
-          select: 'name hasFoodService'
-        }
-      })
-      .populate({
-        path: 'showtime',
-        populate: { path: 'movie', select: 'title' }
+        populate: [
+          { path: 'theatre', select: 'name hasFoodService' },
+          { path: 'movie', select: 'title posterUrl' }
+        ]
       })
       .sort({ createdAt: -1 });
 
